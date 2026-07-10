@@ -1,17 +1,35 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Layout from './components/Layout';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Vendors from './pages/Vendors';
+import Products from './pages/Products';
+import Transactions from './pages/Transactions';
 
 function App() {
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      <header className="p-6 text-2xl font-bold">ShopSense</header>
-      <main className="p-6">landing page...</main>
-    </div>
-  )
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Dashboard />} />
+            <Route path="/vendors" element={<Vendors />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/transactions" element={<Transactions />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  );
 }
 
-
-export default App
+export default App;

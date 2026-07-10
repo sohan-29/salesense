@@ -2,6 +2,7 @@ import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { connectTestDb } from './setup.js';
 import Vendor from '../src/models/Vendor.js';
+import Customer from '../src/models/Customer.js';
 import Category from '../src/models/Category.js';
 import mongoose from 'mongoose';
 
@@ -61,54 +62,74 @@ afterAll(async () => {
   await mongoose.disconnect();
 });
 
-describe('Auth', () => {
-  it('registers a new vendor (status Pending) and returns a token', async () => {
-    const res = await request(app).post('/api/auth/register').send({
+describe('Vendor auth', () => {
+  it('registers a new vendor (status Pending) and returns a token + role', async () => {
+    const res = await request(app).post('/api/auth/vendor/register').send({
       businessName: 'New Vendor',
-      contactEmail: 'new@test.com',
+      email: 'new@test.com',
       password: 'secret123',
       phone: '555',
     });
     expect(res.status).toBe(201);
     expect(res.body.token).toBeTruthy();
-    expect(res.body.vendor.status).toBe('Pending');
-    expect(res.body.vendor.contactEmail).toBe('new@test.com');
-    expect(res.body.vendor).not.toHaveProperty('passwordHash');
+    expect(res.body.role).toBe('vendor');
+    expect(res.body.account.status).toBe('Pending');
+    expect(res.body.account.contactEmail).toBe('new@test.com');
+    expect(res.body.account).not.toHaveProperty('passwordHash');
   });
 
-  it('rejects duplicate email with 409', async () => {
-    const res = await request(app).post('/api/auth/register').send({
+  it('rejects duplicate vendor email with 409', async () => {
+    const res = await request(app).post('/api/auth/vendor/register').send({
       businessName: 'Dup',
-      contactEmail: 'vendor@test.com',
+      email: 'vendor@test.com',
       password: 'secret123',
     });
     expect(res.status).toBe(409);
   });
 
   it('rejects an invalid email with 400', async () => {
-    const res = await request(app).post('/api/auth/register').send({
+    const res = await request(app).post('/api/auth/vendor/register').send({
       businessName: 'Bad',
-      contactEmail: 'not-an-email',
+      email: 'not-an-email',
       password: 'secret123',
     });
     expect(res.status).toBe(400);
   });
 
-  it('logs in with valid credentials', async () => {
-    const res = await request(app).post('/api/auth/login').send({
-      contactEmail: 'vendor@test.com',
+  it('logs in a vendor with valid credentials', async () => {
+    const res = await request(app).post('/api/auth/vendor/login').send({
+      email: 'vendor@test.com',
       password: 'vendor123',
     });
     expect(res.status).toBe(200);
     expect(res.body.token).toBeTruthy();
+    expect(res.body.role).toBe('vendor');
   });
 
   it('rejects wrong password with 401', async () => {
-    const res = await request(app).post('/api/auth/login').send({
-      contactEmail: 'vendor@test.com',
+    const res = await request(app).post('/api/auth/vendor/login').send({
+      email: 'vendor@test.com',
       password: 'wrong',
     });
     expect(res.status).toBe(401);
+  });
+
+  it('does not let a vendor log in via the admin login endpoint', async () => {
+    const res = await request(app).post('/api/auth/admin/login').send({
+      email: 'vendor@test.com',
+      password: 'vendor123',
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('admin logs in via /api/auth/admin/login', async () => {
+    const res = await request(app).post('/api/auth/admin/login').send({
+      email: 'admin@test.com',
+      password: 'admin123',
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.role).toBe('admin');
+    expect(res.body.account.role).toBe('admin');
   });
 
   it('rejects /me without token with 401', async () => {
@@ -119,7 +140,53 @@ describe('Auth', () => {
   it('returns profile with valid token', async () => {
     const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${vendorToken}`);
     expect(res.status).toBe(200);
-    expect(res.body.vendor.contactEmail).toBe('vendor@test.com');
+    expect(res.body.role).toBe('vendor');
+    expect(res.body.account.contactEmail).toBe('vendor@test.com');
+  });
+});
+
+describe('Customer auth', () => {
+  it('registers a new customer and returns a customer-role token', async () => {
+    const res = await request(app).post('/api/auth/customer/register').send({
+      name: 'Alice',
+      email: 'alice@test.com',
+      password: 'secret123',
+      address: '1 Main St',
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.role).toBe('customer');
+    expect(res.body.account.name).toBe('Alice');
+    expect(res.body.account).not.toHaveProperty('passwordHash');
+  });
+
+  it('rejects duplicate customer email with 409', async () => {
+    const res = await request(app).post('/api/auth/customer/register').send({
+      name: 'Dup',
+      email: 'alice@test.com',
+      password: 'secret123',
+    });
+    expect(res.status).toBe(409);
+  });
+
+  it('logs in a customer and returns a customer-role token', async () => {
+    const res = await request(app).post('/api/auth/customer/login').send({
+      email: 'alice@test.com',
+      password: 'secret123',
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.role).toBe('customer');
+    expect(res.body.token).toBeTruthy();
+  });
+
+  it('a customer token cannot access admin vendor list (403)', async () => {
+    const login = await request(app).post('/api/auth/customer/login').send({
+      email: 'alice@test.com',
+      password: 'secret123',
+    });
+    const res = await request(app)
+      .get('/api/vendors')
+      .set('Authorization', `Bearer ${login.body.token}`);
+    expect(res.status).toBe(403);
   });
 });
 
@@ -146,8 +213,8 @@ describe('Vendor profile', () => {
       .send({ currentPassword: 'vendor123', newPassword: 'newpass123' });
     expect(res.status).toBe(200);
 
-    const login = await request(app).post('/api/auth/login').send({
-      contactEmail: 'vendor@test.com',
+    const login = await request(app).post('/api/auth/vendor/login').send({
+      email: 'vendor@test.com',
       password: 'newpass123',
     });
     expect(login.status).toBe(200);

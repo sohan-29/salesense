@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import env from './config/env.js';
 import authRoutes from './routes/authRoutes.js';
 import vendorRoutes from './routes/vendorRoutes.js';
+import customerRoutes from './routes/customerRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
@@ -39,6 +40,13 @@ export function createApp() {
   }));
   app.use(compression());
   app.use(express.json({ limit: '1mb' }));
+  // Disable ETag/304 for API responses: dynamic JSON must always return a body,
+  // otherwise axios parses an empty 304 and the client loses data (e.g. /auth/me).
+  app.disable('etag');
+  app.use((req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+  });
   app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
   app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 1000, standardHeaders: true }));
 
@@ -46,6 +54,7 @@ export function createApp() {
 
   app.use('/api/auth', authRoutes);
   app.use('/api/vendors', vendorRoutes);
+  app.use('/api/customers', customerRoutes);
   app.use('/api/products', productRoutes);
   app.use('/api/inventory', inventoryRoutes);
   app.use('/api/transactions', transactionRoutes);

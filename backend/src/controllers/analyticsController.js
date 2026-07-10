@@ -1,6 +1,7 @@
 import Transaction from '../models/Transaction.js';
 import Product from '../models/Product.js';
 import Vendor from '../models/Vendor.js';
+import Customer from '../models/Customer.js';
 import asyncHandler from '../utils/asyncHandler.js';
 
 /**
@@ -89,8 +90,8 @@ export const productPerformance = asyncHandler(async (req, res) => {
 
 /** GET /api/analytics/summary — top-level KPIs for the dashboard. */
 export const summary = asyncHandler(async (req, res) => {
-  const match = {};
-  if (req.vendor.role !== 'admin') match.vendorId = req.vendor._id;
+  const isAdmin = req.vendor.role === 'admin';
+  const match = isAdmin ? {} : { vendorId: req.vendor._id };
 
   const [agg] = await Transaction.aggregate([
     { $match: { ...match, status: { $ne: 'cancelled' } } },
@@ -109,15 +110,14 @@ export const summary = asyncHandler(async (req, res) => {
   const orderCount = agg?.orderCount || 0;
   const aov = orderCount ? gmv / orderCount : 0;
 
-  const vendorCount = await Vendor.countDocuments(
-    req.vendor.role === 'admin' ? {} : { _id: req.vendor._id }
-  );
+  const vendorCount = await Vendor.countDocuments(isAdmin ? {} : { _id: req.vendor._id });
   const activeVendors = await Vendor.countDocuments(
-    req.vendor.role === 'admin' ? { status: 'Active' } : { _id: req.vendor._id, status: 'Active' }
+    isAdmin ? { status: 'Active' } : { _id: req.vendor._id, status: 'Active' }
   );
   const productCount = await Product.countDocuments(
-    req.vendor.role === 'admin' ? {} : { vendorId: req.vendor._id }
+    isAdmin ? {} : { vendorId: req.vendor._id }
   );
+  const customerCount = isAdmin ? await Customer.countDocuments({}) : 0;
 
   res.json({
     summary: {
@@ -128,6 +128,7 @@ export const summary = asyncHandler(async (req, res) => {
       vendorCount,
       activeVendors,
       productCount,
+      customerCount,
     },
   });
 });

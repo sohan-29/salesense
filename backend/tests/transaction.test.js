@@ -26,8 +26,8 @@ beforeAll(async () => {
   await vendor.setPassword('password123');
   await vendor.save();
 
-  const login = await request(app).post('/api/auth/login').send({
-    contactEmail: 'tv@example.com',
+  const login = await request(app).post('/api/auth/vendor/login').send({
+    email: 'tv@example.com',
     password: 'password123',
   });
   token = login.body.token;

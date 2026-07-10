@@ -18,18 +18,36 @@ export const createProduct = asyncHandler(async (req, res) => {
   res.status(201).json({ product });
 });
 
-/** GET /api/products — vendor sees own; admin sees all. */
+/**
+ * GET /api/products
+ *  - customer: browse all active products across vendors (with vendor name)
+ *  - vendor: own products
+ *  - admin: all products
+ */
 export const listProducts = asyncHandler(async (req, res) => {
-  const filter = req.vendor.role === 'admin' ? {} : { vendorId: req.vendor._id };
-  const products = await Product.find(filter).sort('-createdAt');
+  let filter = {};
+  let populate = '';
+
+  if (req.customer) {
+    filter = { status: 'active' };
+    populate = 'vendorId';
+  } else if (req.vendor?.role === 'admin') {
+    populate = 'vendorId';
+  } else if (req.vendor) {
+    filter = { vendorId: req.vendor._id };
+  }
+
+  let query = Product.find(filter).sort('-createdAt');
+  if (populate) query = query.populate(populate, 'businessName');
+  const products = await query;
   res.json({ products });
 });
 
-/** GET /api/products/:id — owner or admin. */
+/** GET /api/products/:id — owner or admin; customers can view active products. */
 export const getProduct = asyncHandler(async (req, res) => {
-  const product = await Product.findById(req.params.id);
+  const product = await Product.findById(req.params.id).populate('vendorId', 'businessName');
   if (!product) throw ApiError.notFound('Product not found');
-  if (req.vendor.role !== 'admin' && !product.vendorId.equals(req.vendor._id)) {
+  if (req.vendor && req.vendor.role !== 'admin' && !product.vendorId.equals(req.vendor._id)) {
     throw ApiError.forbidden('Not allowed');
   }
   res.json({ product });

@@ -24,25 +24,36 @@ client.interceptors.response.use(
 
 export default client;
 
-// --- endpoint wrappers ------------------------------------------------
+// --- auth (role-aware) --------------------------------------------------
 export const authApi = {
-  register: (body) => client.post('/auth/register', body).then((r) => r.data),
-  login: (body) => client.post('/auth/login', body).then((r) => r.data),
+  customerRegister: (body) => client.post('/auth/customer/register', body).then((r) => r.data),
+  customerLogin: (body) => client.post('/auth/customer/login', body).then((r) => r.data),
+  vendorRegister: (body) => client.post('/auth/vendor/register', body).then((r) => r.data),
+  vendorLogin: (body) => client.post('/auth/vendor/login', body).then((r) => r.data),
+  adminLogin: (body) => client.post('/auth/admin/login', body).then((r) => r.data),
+  adminRegister: (body) => client.post('/auth/admin/register', body).then((r) => r.data),
   me: () => client.get('/auth/me').then((r) => r.data),
 };
 
+// --- vendor profile + admin vendor management ---------------------------
 export const vendorApi = {
   getMe: () => client.get('/vendors/me').then((r) => r.data),
   updateMe: (body) => client.put('/vendors/me', body).then((r) => r.data),
   changePassword: (body) => client.put('/vendors/me/password', body).then((r) => r.data),
   submitVerification: (body) => client.post('/vendors/me/verification', body).then((r) => r.data),
-  // admin
   list: (params) => client.get('/vendors', { params }).then((r) => r.data),
   updateStatus: (id, body) => client.patch(`/vendors/${id}/status`, body).then((r) => r.data),
 };
 
+// --- customers (admin) --------------------------------------------------
+export const customerApi = {
+  list: () => client.get('/customers').then((r) => r.data),
+};
+
+// --- products -----------------------------------------------------------
 export const productApi = {
   list: () => client.get('/products').then((r) => r.data),
+  get: (id) => client.get(`/products/${id}`).then((r) => r.data),
   create: (body) => client.post('/products', body).then((r) => r.data),
   update: (id, body) => client.put(`/products/${id}`, body).then((r) => r.data),
   remove: (id) => client.delete(`/products/${id}`).then((r) => r.data),

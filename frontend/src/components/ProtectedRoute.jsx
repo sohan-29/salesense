@@ -4,12 +4,12 @@ import Spinner from './Spinner';
 
 /**
  * Guard: redirect to /login when unauthenticated; render children when loaded.
- * `adminOnly` additionally restricts to admin role.
+ * `roles` (optional array) restricts to specific roles.
  */
-export default function ProtectedRoute({ children, adminOnly = false }) {
-  const { vendor, loading, isAdmin } = useAuth();
+export default function ProtectedRoute({ children, roles }) {
+  const { account, role, loading } = useAuth();
   if (loading) return <Spinner label="Loading session…" />;
-  if (!vendor) return <Navigate to="/login" replace />;
-  if (adminOnly && !isAdmin) return <Navigate to="/" replace />;
+  if (!account) return <Navigate to="/login" replace />;
+  if (roles && !roles.includes(role)) return <Navigate to="/" replace />;
   return children;
 }

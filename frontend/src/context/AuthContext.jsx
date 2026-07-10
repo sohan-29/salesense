@@ -4,7 +4,8 @@ import { authApi } from '../api/client';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [vendor, setVendor] = useState(null);
+  const [account, setAccount] = useState(null);
+  const [role, setRole] = useState(null); // 'customer' | 'vendor' | 'admin'
   const [loading, setLoading] = useState(true);
 
   // On mount: if we have a token, fetch the profile.
@@ -16,41 +17,70 @@ export function AuthProvider({ children }) {
     }
     authApi
       .me()
-      .then(({ vendor: v }) => setVendor(v))
+      .then(({ account: a, role: r }) => {
+        setAccount(a);
+        setRole(r);
+      })
       .catch(() => localStorage.removeItem('shopsense_token'))
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (credentials) => {
-    const { token, vendor: v } = await authApi.login(credentials);
+  const store = (token, a, r) => {
     localStorage.setItem('shopsense_token', token);
-    setVendor(v);
-    return v;
+    setAccount(a);
+    setRole(r);
   };
 
-  const register = async (body) => {
-    const { token, vendor: v } = await authApi.register(body);
-    localStorage.setItem('shopsense_token', token);
-    setVendor(v);
-    return v;
+  const login = async (kind, credentials) => {
+    const fn = {
+      customer: authApi.customerLogin,
+      vendor: authApi.vendorLogin,
+      admin: authApi.adminLogin,
+    }[kind];
+    const { token, account: a, role: r } = await fn(credentials);
+    store(token, a, r);
+    return { account: a, role: r };
+  };
+
+  const register = async (kind, body) => {
+    const fn = {
+      customer: authApi.customerRegister,
+      vendor: authApi.vendorRegister,
+      admin: authApi.adminRegister,
+    }[kind];
+    const { token, account: a, role: r } = await fn(body);
+    store(token, a, r);
+    return { account: a, role: r };
   };
 
   const logout = () => {
     localStorage.removeItem('shopsense_token');
-    setVendor(null);
+    setAccount(null);
+    setRole(null);
   };
 
-  const refreshVendor = async () => {
-    const { vendor: v } = await authApi.me();
-    setVendor(v);
-    return v;
+  const refreshAccount = async () => {
+    const { account: a, role: r } = await authApi.me();
+    setAccount(a);
+    setRole(r);
+    return { account: a, role: r };
   };
-
-  const isAdmin = vendor?.role === 'admin';
 
   return (
     <AuthContext.Provider
-      value={{ vendor, loading, isAdmin, login, register, logout, refreshVendor, setVendor }}
+      value={{
+        account,
+        role,
+        loading,
+        isAdmin: role === 'admin',
+        isVendor: role === 'vendor',
+        isCustomer: role === 'customer',
+        login,
+        register,
+        logout,
+        refreshAccount,
+        setAccount,
+      }}
     >
       {children}
     </AuthContext.Provider>

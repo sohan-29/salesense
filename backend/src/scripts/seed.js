@@ -8,6 +8,7 @@
 import { connectDb, disconnectDb } from '../config/db.js';
 import env from '../config/env.js';
 import Vendor from '../models/Vendor.js';
+import Customer from '../models/Customer.js';
 import Category from '../models/Category.js';
 import Product from '../models/Product.js';
 import Inventory from '../models/Inventory.js';
@@ -26,6 +27,7 @@ async function seed() {
       Product.deleteMany({}),
       Inventory.deleteMany({}),
       Transaction.deleteMany({}),
+      Customer.deleteMany({}),
     ]);
     // eslint-disable-next-line no-console
     console.log('Cleared existing data.');
@@ -84,6 +86,18 @@ async function seed() {
   await beta.setPassword('beta123');
   await beta.save();
 
+  // --- customers (browse products) ---
+  const customers = [];
+  for (const c of [
+    { name: 'John Doe', email: 'customer@shopsense.test', phone: '+1-555-0300', address: '21 Elm St, Boston' },
+    { name: 'Jane Smith', email: 'jane@shopsense.test', phone: '+1-555-0310', address: '5 Pine Ave, Austin' },
+  ]) {
+    const customer = new Customer(c);
+    await customer.setPassword('customer123');
+    await customer.save();
+    customers.push(customer);
+  }
+
   // --- products for Acme ---
   const products = await Product.create([
     { vendorId: acme._id, name: 'Wireless Mouse', sku: 'ACM-MS-01', category: 'Electronics', price: 19.99, description: 'Ergonomic 2.4GHz mouse' },
@@ -138,8 +152,10 @@ async function seed() {
   admin        -> admin@shopsense.test / admin123
   vendor       -> vendor@shopsense.test / vendor123   (Active)
   pending      -> beta@shopsense.test   / beta123     (Pending)
+  customer     -> customer@shopsense.test / customer123
   categories  -> ${categories.length}
   products    -> ${products.length} (1 low-stock)
+  customers   -> ${customers.length}
   transactions -> ${savedTx.length}`);
 
   await disconnectDb();

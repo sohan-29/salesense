@@ -22,8 +22,8 @@ beforeAll(async () => {
   await admin.setPassword('adminpass');
   await admin.save();
 
-  const login = await request(app).post('/api/auth/login').send({
-    contactEmail: 'admin@analytics.test',
+  const login = await request(app).post('/api/auth/admin/login').send({
+    email: 'admin@analytics.test',
     password: 'adminpass',
   });
   adminToken = login.body.token;

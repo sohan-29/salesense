@@ -56,7 +56,7 @@ export default function Catalog() {
                 <h3 className="mt-2 text-sm font-semibold text-ink">{p.name}</h3>
                 {p.description && <p className="mt-1 line-clamp-2 text-xs text-slate-500">{p.description}</p>}
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="text-lg font-bold text-brand-700">${p.price?.toFixed(2)}</span>
+                  <span className="text-lg font-bold text-brand-700">₹{p.price?.toFixed(2)}</span>
                   {p.sku && <span className="text-xs text-slate-400">SKU {p.sku}</span>}
                 </div>
               </div>

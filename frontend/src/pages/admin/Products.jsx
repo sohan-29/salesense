@@ -23,7 +23,7 @@ export default function Products() {
                 <td className="px-4 py-3 font-medium text-ink">{p.name}</td>
                 <td className="px-4 py-3 text-slate-600">{p.vendorId?.businessName || '—'}</td>
                 <td className="px-4 py-3 text-slate-600">{p.category || '—'}</td>
-                <td className="px-4 py-3 font-medium">${p.price?.toFixed(2)}</td>
+                <td className="px-4 py-3 font-medium">₹{p.price?.toFixed(2)}</td>
                 <td className="px-4 py-3"><StatusBadge status={p.status} /></td>
               </tr>
             ))}

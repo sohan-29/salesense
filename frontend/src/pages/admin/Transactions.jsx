@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { transactionApi } from '../../api/client';
 import Spinner from '../../components/Spinner';
 
-const money = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0);
+const money = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n || 0);
 
 export default function Transactions() {
   const [txns, setTxns] = useState(null);

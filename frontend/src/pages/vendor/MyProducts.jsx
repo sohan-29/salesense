@@ -127,7 +127,7 @@ export default function MyProducts() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-slate-600">{p.category || '—'}</td>
-                  <td className="px-4 py-3 font-medium text-ink">${p.price?.toFixed(2)}</td>
+                  <td className="px-4 py-3 font-medium text-ink">₹{p.price?.toFixed(2)}</td>
                   <td className="px-4 py-3"><StatusBadge status={p.status} /></td>
                   <td className="px-4 py-3 text-right">
                     <button onClick={() => openEdit(p)} className="text-brand-600 hover:text-brand-700">Edit</button>

@@ -48,6 +48,8 @@ export const vendorApi = {
 // --- customers (admin) --------------------------------------------------
 export const customerApi = {
   list: () => client.get('/customers').then((r) => r.data),
+  segments: () => client.get('/customers/segments').then((r) => r.data),
+  behaviour: (id) => client.get(`/customers/${id}/behaviour`).then((r) => r.data),
 };
 
 // --- products -----------------------------------------------------------
@@ -63,6 +65,7 @@ export const inventoryApi = {
   list: () => client.get('/inventory').then((r) => r.data),
   restock: (productId, body) => client.patch(`/inventory/${productId}`, body).then((r) => r.data),
   lowStock: () => client.get('/inventory/low-stock').then((r) => r.data),
+  forecast: (params) => client.get('/inventory/forecast', { params }).then((r) => r.data),
 };
 
 export const transactionApi = {
@@ -74,6 +77,12 @@ export const analyticsApi = {
   revenue: () => client.get('/analytics/revenue').then((r) => r.data),
   products: () => client.get('/analytics/products').then((r) => r.data),
   summary: () => client.get('/analytics/summary').then((r) => r.data),
+  validate: () => client.get('/analytics/validate').then((r) => r.data),
+};
+
+export const recommendationApi = {
+  forCustomer: (params) => client.get('/recommendations', { params }).then((r) => r.data),
+  popular: (params) => client.get('/recommendations/popular', { params }).then((r) => r.data),
 };
 
 export const categoryApi = {

@@ -10,6 +10,7 @@ const icon = {
   customers: 'M12 4.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM5 20h14a3 3 0 00-3-3H8a3 3 0 00-3 3z',
   txns: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',
   dash: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3',
+  validate: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
 };
 
 const navByRole = {
@@ -28,6 +29,7 @@ const navByRole = {
     { to: '/customers', label: 'Customers', icon: icon.customers },
     { to: '/products', label: 'Products', icon: icon.products },
     { to: '/transactions', label: 'Transactions', icon: icon.txns },
+    { to: '/validation', label: 'Validation', icon: icon.validate },
   ],
 };
 

@@ -10,6 +10,7 @@ import AdminVendors from './pages/admin/Vendors';
 import AdminCustomers from './pages/admin/Customers';
 import AdminProducts from './pages/admin/Products';
 import AdminTransactions from './pages/admin/Transactions';
+import AdminValidation from './pages/admin/Validation';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
             <Route path="/customers" element={<ProtectedRoute roles={['admin']}><AdminCustomers /></ProtectedRoute>} />
             <Route path="/products" element={<ProtectedRoute roles={['admin']}><AdminProducts /></ProtectedRoute>} />
             <Route path="/transactions" element={<ProtectedRoute roles={['admin']}><AdminTransactions /></ProtectedRoute>} />
+            <Route path="/validation" element={<ProtectedRoute roles={['admin']}><AdminValidation /></ProtectedRoute>} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -10,9 +10,17 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    Promise.all([analyticsApi.summary(), analyticsApi.revenue(), analyticsApi.products(), inventoryApi.lowStock()])
-      .then(([s, r, p, ls]) => setData({ summary: s.summary, revenue: r.report, products: p.report, low: ls.inventory }))
-      .catch(() => setData({ summary: {}, revenue: [], products: [], low: [] }));
+    Promise.all([
+      analyticsApi.summary(),
+      analyticsApi.revenue(),
+      analyticsApi.products(),
+      inventoryApi.lowStock(),
+      inventoryApi.forecast({ days: 14, horizon: 7 }).catch(() => ({ forecasts: [] })),
+    ])
+      .then(([s, r, p, ls, f]) =>
+        setData({ summary: s.summary, revenue: r.report, products: p.report, low: ls.inventory, forecast: f.forecasts })
+      )
+      .catch(() => setData({ summary: {}, revenue: [], products: [], low: [], forecast: [] }));
   }, []);
 
   if (!data) return <Spinner />;
@@ -79,6 +87,35 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-ink">Inventory forecast — next 7 days</h2>
+        <p className="text-xs text-slate-500">Moving-average demand from the last 14 days of sales.</p>
+        {data.forecast.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-400">No forecast data.</p>
+        ) : (
+          <table className="mt-3 w-full text-sm">
+            <thead className="text-left text-xs uppercase text-slate-400">
+              <tr><th className="py-2">Product</th><th className="py-2">Category</th><th className="py-2">In stock</th><th className="py-2">Avg/day</th><th className="py-2">Predicted (7d)</th><th className="py-2">Confidence</th></tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {data.forecast.slice(0, 8).map((f) => {
+                const low = f.predictedStock > f.stockAvailable;
+                return (
+                  <tr key={f.productId}>
+                    <td className="py-2 font-medium text-ink">{f.name}</td>
+                    <td className="py-2 text-slate-500">{f.category || '—'}</td>
+                    <td className="py-2 text-slate-600">{f.stockAvailable}</td>
+                    <td className="py-2 text-slate-600">{f.avgDailySales}</td>
+                    <td className={`py-2 font-medium ${low ? 'text-rose-600' : 'text-ink'}`}>{Math.round(f.predictedStock)}</td>
+                    <td className="py-2 text-slate-600">{Math.round(f.confidenceLevel * 100)}%</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

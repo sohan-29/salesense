@@ -81,7 +81,7 @@ export default function MyProducts() {
               <input list="cats" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30" />
               <datalist id="cats">{categories.map((c) => <option key={c._id} value={c.name} />)}</datalist>
             </div>
-            <Input label="Price (USD)" type="number" value={form.price} onChange={(v) => setForm({ ...form, price: v })} />
+            <Input label="Price (INR)" type="number" value={form.price} onChange={(v) => setForm({ ...form, price: v })} />
             {editing === 'new' && <Input label="Initial stock" type="number" value={form.stock} onChange={(v) => setForm({ ...form, stock: v })} required={false} />}
             <div>
               <label className="block text-sm font-medium text-slate-700">Status</label>

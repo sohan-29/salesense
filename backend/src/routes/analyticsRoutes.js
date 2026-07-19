@@ -1,5 +1,5 @@
 import express from 'express';
-import { revenueByVendor, productPerformance, summary } from '../controllers/analyticsController.js';
+import { revenueByVendor, productPerformance, summary, validate } from '../controllers/analyticsController.js';
 import authenticate from '../middleware/auth.js';
 import requireRole from '../middleware/role.js';
 
@@ -11,5 +11,6 @@ router.use(authenticate, requireRole('vendor', 'admin'));
 router.get('/revenue', revenueByVendor);
 router.get('/products', productPerformance);
 router.get('/summary', summary);
+router.get('/validate', validate);
 
 export default router;

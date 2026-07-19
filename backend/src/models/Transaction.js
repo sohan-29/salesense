@@ -10,6 +10,11 @@ const transactionSchema = new Schema(
   {
     productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true, index: true },
     vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor', required: true, index: true },
+    // Optional: the customer who placed the order. Absent on legacy/seeded
+    // orders and on orders recorded by vendors/admins without a customer.
+    // Customer behaviour analytics (segmentation, recommendations) joins on
+    // this field — see customerController / recommendationController.
+    customerId: { type: Schema.Types.ObjectId, ref: 'Customer', index: true, default: null },
     quantity: { type: Number, required: true, min: 1 },
     unitPrice: { type: Number, required: true, min: 0 },
     totalAmount: { type: Number, required: true, min: 0 },

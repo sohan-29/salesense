@@ -106,4 +106,20 @@ export const lowStockQuerySchema = z.object({
 export const transactionCreateSchema = z.object({
   productId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid product id'),
   quantity: z.number().int().min(1, 'Quantity must be at least 1'),
+  // Optional: vendor/admin recording an order on behalf of a customer.
+  // A customer placing their own order is stamped server-side (ignored here).
+  customerId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid customer id').optional(),
+});
+
+// --- Inventory forecast -------------------------------------------------
+export const forecastQuerySchema = z.object({
+  productId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid product id').optional(),
+  days: z.coerce.number().int().min(1).max(180).optional().default(7),
+  horizon: z.coerce.number().int().min(1).max(90).optional().default(7),
+});
+
+// --- Recommendations ----------------------------------------------------
+export const recommendationQuerySchema = z.object({
+  customerId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid customer id').optional(),
+  limit: z.coerce.number().int().min(1).max(20).optional().default(5),
 });

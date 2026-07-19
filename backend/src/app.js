@@ -13,6 +13,7 @@ import inventoryRoutes from './routes/inventoryRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
+import recommendationRoutes from './routes/recommendationRoutes.js';
 import notFound from './middleware/notFound.js';
 import errorHandler from './middleware/errorHandler.js';
 
@@ -60,6 +61,7 @@ export function createApp() {
   app.use('/api/transactions', transactionRoutes);
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/categories', categoryRoutes);
+  app.use('/api/recommendations', recommendationRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

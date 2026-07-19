@@ -19,6 +19,11 @@ import asyncHandler from '../utils/asyncHandler.js';
 export const createTransaction = asyncHandler(async (req, res) => {
   const { productId, quantity } = req.body;
 
+  // A customer placing their own order is stamped automatically; a vendor/
+  // admin recording an order may pass an explicit customerId. Left null when
+  // absent — customer-behaviour analytics simply ignore unattributed orders.
+  const customerId = req.customer ? req.customer._id : req.body.customerId || null;
+
   const session = await mongoose.startSession();
   try {
     let created;
@@ -46,6 +51,7 @@ export const createTransaction = asyncHandler(async (req, res) => {
           {
             productId: product._id,
             vendorId: product.vendorId,
+            customerId,
             quantity,
             unitPrice,
             totalAmount,
@@ -63,15 +69,26 @@ export const createTransaction = asyncHandler(async (req, res) => {
   }
 });
 
-/** GET /api/transactions — vendor sees own; admin sees all. Optional ?productId filter. */
+/**
+ * GET /api/transactions
+ *  - customer: own orders only (matched on customerId)
+ *  - vendor: own products only
+ *  - admin: all
+ * Optional ?productId filter.
+ */
 export const listTransactions = asyncHandler(async (req, res) => {
   const filter = {};
-  if (req.vendor.role !== 'admin') filter.vendorId = req.vendor._id;
+  if (req.customer) {
+    filter.customerId = req.customer._id;
+  } else if (req.vendor.role !== 'admin') {
+    filter.vendorId = req.vendor._id;
+  }
   if (req.query.productId) filter.productId = req.query.productId;
 
   const transactions = await Transaction.find(filter)
     .sort('-date')
     .populate('productId', 'name category price')
+    .populate('customerId', 'name email')
     .limit(200);
   res.json({ transactions });
 });

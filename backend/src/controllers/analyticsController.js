@@ -3,6 +3,7 @@ import Product from '../models/Product.js';
 import Vendor from '../models/Vendor.js';
 import Customer from '../models/Customer.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import { runValidation } from '../utils/validation.js';
 
 /**
  * GET /api/analytics/revenue — revenue grouped by vendor (Step 4 baseline report).
@@ -131,4 +132,19 @@ export const summary = asyncHandler(async (req, res) => {
       customerCount,
     },
   });
+});
+
+/**
+ * GET /api/analytics/validate — backtest the three Milestone-2 analytical
+ * outputs (forecast / segmentation / recommendations) against held-out
+ * historical transactions. Reports actual metric vs the concept-note
+ * thresholds (0.80 / 0.85 / 0.75).
+ */
+export const validate = asyncHandler(async (req, res) => {
+  const result = await runValidation({
+    trainRatio: 0.7,
+    windowDays: Number(req.query.windowDays) || 7,
+    horizon: Number(req.query.horizon) || 7,
+  });
+  res.json(result);
 });

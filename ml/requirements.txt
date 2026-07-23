@@ -1,0 +1,8 @@
+# Python ML recommender for ShopSense. Pinned loosely to what is already
+# installed locally; pymongo + python-dotenv are the only new installs.
+pymongo>=4.7,<5
+python-dotenv>=1.0,<2
+scikit-learn>=1.4,<2
+numpy>=1.26,<3
+scipy>=1.11,<2
+joblib>=1.3,<2

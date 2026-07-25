@@ -123,3 +123,18 @@ export const recommendationQuerySchema = z.object({
   customerId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid customer id').optional(),
   limit: z.coerce.number().int().min(1).max(20).optional().default(5),
 });
+
+// --- Analytics chart (filterable) ---------------------------------------
+// All optional; absent filters are ignored server-side. Used by the admin
+// Dashboard and vendor Sales filter bars.
+export const analyticsChartQuerySchema = z.object({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  minPrice: z.coerce.number().min(0).optional(),
+  maxPrice: z.coerce.number().min(0).optional(),
+  category: z.string().trim().optional(),
+  vendorId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid vendor id').optional(),
+  status: z
+    .enum(['pending', 'paid', 'shipped', 'delivered', 'refunded', 'cancelled'])
+    .optional(),
+});

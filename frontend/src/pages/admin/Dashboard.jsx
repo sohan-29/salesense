@@ -1,13 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { analyticsApi, inventoryApi } from '../../api/client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Spinner from '../../components/Spinner';
 import StatCard from '../../components/StatCard';
+import AnalyticsFilters from '../../components/AnalyticsFilters';
+import AnalyticsCharts from '../../components/AnalyticsCharts';
 
 const money = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n || 0);
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
+  const [chart, setChart] = useState(null);
+  const [chartLoading, setChartLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -23,16 +27,28 @@ export default function Dashboard() {
       .catch(() => setData({ summary: {}, revenue: [], products: [], low: [], forecast: [] }));
   }, []);
 
+  // Filterable analytics: re-fetch /chart whenever the filter object changes.
+  const onFiltersChange = useCallback((params) => {
+    setChartLoading(true);
+    analyticsApi
+      .chart(params)
+      .then((d) => setChart(d))
+      .catch(() => setChart(null))
+      .finally(() => setChartLoading(false));
+  }, []);
+
   if (!data) return <Spinner />;
 
   const s = data.summary;
-  const chart = data.revenue.map((r) => ({ name: r.businessName || '—', revenue: r.totalRevenue }));
+  const cs = chart?.summary;
+  const revChart = data.revenue.map((r) => ({ name: r.businessName || '—', revenue: r.totalRevenue }));
 
   return (
     <div>
       <h1 className="text-2xl font-semibold text-ink">Dashboard</h1>
       <p className="text-sm text-slate-500">Marketplace overview across all vendors.</p>
 
+      {/* Always-on overview KPIs */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="GMV (total revenue)" value={money(s.gmv)} accent="indigo" sub={`${s.orderCount} orders · AOV ${money(s.aov)}`} />
         <StatCard label="Units sold" value={s.totalUnits} accent="emerald" />
@@ -40,12 +56,29 @@ export default function Dashboard() {
         <StatCard label="Customers" value={s.customerCount ?? 0} accent="amber" />
       </div>
 
+      {/* Filterable graphical analytics */}
+      <div className="mt-8">
+        <AnalyticsFilters onChange={onFiltersChange} isAdmin />
+
+        {/* KPIs recomputed from the filtered /chart payload */}
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Filtered GMV" value={money(cs?.gmv)} accent="indigo" sub={`${cs?.orderCount ?? 0} orders`} />
+          <StatCard label="Filtered units" value={cs?.totalUnits ?? 0} accent="emerald" />
+          <StatCard label="Filtered AOV" value={money(cs?.aov)} accent="amber" />
+          <StatCard label="Categories in view" value={chart?.byCategory?.length ?? 0} accent="sky" />
+        </div>
+
+        <div className="mt-6">
+          <AnalyticsCharts data={chart} loading={chartLoading} isAdmin />
+        </div>
+      </div>
+
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-ink">Revenue by vendor</h2>
           <div className="mt-4 h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chart}>
+              <BarChart data={revChart}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />

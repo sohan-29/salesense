@@ -78,6 +78,7 @@ export const analyticsApi = {
   products: () => client.get('/analytics/products').then((r) => r.data),
   summary: () => client.get('/analytics/summary').then((r) => r.data),
   validate: () => client.get('/analytics/validate').then((r) => r.data),
+  chart: (params) => client.get('/analytics/chart', { params }).then((r) => r.data),
 };
 
 export const recommendationApi = {

@@ -97,3 +97,70 @@ describe('GET /api/analytics — revenue consistency (≥98%)', () => {
     expect(s.activeVendors).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe('GET /api/analytics/chart — filterable analytics', () => {
+  it('returns aggregated chart payload matching the known totals', async () => {
+    const res = await request(app)
+      .get('/api/analytics/chart')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.summary.gmv).toBe(180);
+    expect(res.body.summary.totalUnits).toBe(12);
+    expect(res.body.summary.orderCount).toBe(4);
+    expect(res.body.byCategory.length).toBe(2); // Electronics + Home
+    expect(res.body.topProducts.length).toBe(2);
+    expect(res.body.byVendor).toBeDefined(); // admin only
+    expect(res.body.byVendor[0].businessName).toBe('Acme');
+  });
+
+  it('filters by category (Electronics only → P1, revenue 80)', async () => {
+    const res = await request(app)
+      .get('/api/analytics/chart')
+      .query({ category: 'Electronics' })
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.summary.gmv).toBe(80); // 50 + 30
+    expect(res.body.summary.orderCount).toBe(2);
+    expect(res.body.byCategory.length).toBe(1);
+    expect(res.body.byCategory[0].category).toBe('Electronics');
+  });
+
+  it('filters by price range (maxPrice=40 → only the ₹30 order)', async () => {
+    const res = await request(app)
+      .get('/api/analytics/chart')
+      .query({ maxPrice: 40 })
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.summary.gmv).toBe(30);
+    expect(res.body.summary.orderCount).toBe(1);
+  });
+
+  it('filters by status (cancelled → only the excluded ₹225 order)', async () => {
+    const res = await request(app)
+      .get('/api/analytics/chart')
+      .query({ status: 'cancelled' })
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.summary.gmv).toBe(225);
+    expect(res.body.summary.orderCount).toBe(1);
+    expect(res.body.byStatus[0].status).toBe('cancelled');
+  });
+
+  it('a vendor is scoped to their own data and gets no byVendor breakdown', async () => {
+    const login = await request(app).post('/api/auth/vendor/login').send({
+      email: 'acme@analytics.test',
+      password: 'vendorpass',
+    });
+    const res = await request(app)
+      .get('/api/analytics/chart')
+      .set('Authorization', `Bearer ${login.body.token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.summary.gmv).toBe(180); // Acme's own
+    expect(res.body.byVendor).toBeUndefined(); // vendors don't get the vendor breakdown
+  });
+});

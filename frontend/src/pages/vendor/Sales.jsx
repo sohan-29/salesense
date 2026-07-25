@@ -1,13 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { analyticsApi, transactionApi } from '../../api/client';
 import Spinner from '../../components/Spinner';
 import StatCard from '../../components/StatCard';
+import AnalyticsFilters from '../../components/AnalyticsFilters';
+import AnalyticsCharts from '../../components/AnalyticsCharts';
 
 const money = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n || 0);
 
 export default function Sales() {
   const [summary, setSummary] = useState(null);
   const [txns, setTxns] = useState(null);
+  const [chart, setChart] = useState(null);
+  const [chartLoading, setChartLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([analyticsApi.summary(), transactionApi.list()])
@@ -15,18 +19,47 @@ export default function Sales() {
       .catch(() => { setSummary({}); setTxns([]); });
   }, []);
 
+  // Filterable analytics: re-fetch /chart (vendor-scoped server-side) on change.
+  const onFiltersChange = useCallback((params) => {
+    setChartLoading(true);
+    analyticsApi
+      .chart(params)
+      .then((d) => setChart(d))
+      .catch(() => setChart(null))
+      .finally(() => setChartLoading(false));
+  }, []);
+
   if (!summary || !txns) return <Spinner />;
+
+  const cs = chart?.summary;
 
   return (
     <div>
       <h1 className="text-2xl font-semibold text-ink">Sales</h1>
       <p className="text-sm text-slate-500">Your revenue and order history.</p>
 
+      {/* Always-on overview KPIs */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Revenue (GMV)" value={money(summary.gmv)} accent="indigo" />
         <StatCard label="Units sold" value={summary.totalUnits} accent="emerald" />
         <StatCard label="Orders" value={summary.orderCount} accent="sky" />
         <StatCard label="Avg order value" value={money(summary.aov)} accent="amber" />
+      </div>
+
+      {/* Filterable graphical analytics (vendor is auto-scoped to their own) */}
+      <div className="mt-8">
+        <AnalyticsFilters onChange={onFiltersChange} />
+
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Filtered revenue" value={money(cs?.gmv)} accent="indigo" sub={`${cs?.orderCount ?? 0} orders`} />
+          <StatCard label="Filtered units" value={cs?.totalUnits ?? 0} accent="emerald" />
+          <StatCard label="Filtered AOV" value={money(cs?.aov)} accent="amber" />
+          <StatCard label="Products in view" value={chart?.topProducts?.length ?? 0} accent="sky" />
+        </div>
+
+        <div className="mt-6">
+          <AnalyticsCharts data={chart} loading={chartLoading} />
+        </div>
       </div>
 
       <div className="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">

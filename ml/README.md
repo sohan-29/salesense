@@ -74,6 +74,42 @@ fallback, matching the JS controller.
 python -m recommender.cli show-models
 ```
 
+### Refresh — drive the LIVE app's recommendations (batch write-back)
+
+This is the command that wires the ML model into the running app:
+
+```bash
+python -m recommender.cli refresh --model svd --limit 5
+# or from the backend dir:  npm run ml:refresh -- --model cosine --limit 5
+```
+
+It trains the chosen model on full history, computes top-k recommendations for
+**every** customer, and writes them to the `ml_recommendations` collection in
+Atlas. The Node backend then serves these (freshness-gated) from
+`GET /api/recommendations` — so customers see ML-driven recommendations in the
+Catalog UI. Cold-start customers get a `popular` row.
+
+**Freshness gate** (`backend/src/controllers/recommendationController.js`): a
+cached row is served only if it is younger than `ML_CACHE_MAX_AGE_MIN`
+(default 60 min) AND the customer has not purchased anything since it was
+generated. Otherwise the controller recomputes live (JS CF), so recommendations
+still react to new purchases. Re-run `refresh` after data changes (or on a
+schedule) to keep the cache current.
+
+## How the app consumes the cache
+
+```
+python -m recommender.cli refresh   ──writes──▶  ml_recommendations (Atlas)
+                                                         │
+GET /api/recommendations  ──reads (fresh only)──▶  ML cache HIT  ──▶ serve ML recs
+                      │                                   (else) ──▶ JS CF fallback
+                      └──── always available, never regresses ────┘
+```
+
+The ML cache is **additive**: if Python/deps are missing or the cache is
+absent/stale, the app behaves exactly as before (JS CF + popular fallback).
+All 54 backend tests pass with the cache layer in place.
+
 ## How the backtest maps to the JS endpoint
 
 | JS (`utils/validation.js`) | Python (`backtest.py`) |

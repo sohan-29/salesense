@@ -146,5 +146,7 @@ function reasonLabel(reason) {
   if (reason === 'collaborative') return 'Customers like you bought this';
   if (reason === 'content') return 'In your favourite category';
   if (reason === 'popular') return 'Popular right now';
+  if (reason === 'svd') return 'Smart pick (ML)';
+  if (reason === 'cosine') return 'Similar to what you buy (ML)';
   return '';
 }

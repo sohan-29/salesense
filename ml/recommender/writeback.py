@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 
+from bson import ObjectId
 from pymongo import MongoClient
 
 from .data import Dataset, get_mongo_uri, load_dataset
@@ -84,7 +85,9 @@ def refresh_recommendations(
             meta = dataset.product_meta.get(r.product_idx, {})
             items.append(
                 {
-                    "productId": dataset.product_ids[r.product_idx],
+                    # Store as ObjectId so Mongoose queries (which cast to
+                    # ObjectId per the schema) match — a hex string would NOT.
+                    "productId": ObjectId(dataset.product_ids[r.product_idx]),
                     "score": float(r.score),
                     "reason": r.reason if r.reason != "popular" else "popular",
                     "category": meta.get("category", "Uncategorised"),
@@ -93,9 +96,9 @@ def refresh_recommendations(
 
         customer_hex = dataset.customer_ids[c]
         coll.replace_one(
-            {"customerId": customer_hex, "model": reason_prefix},
+            {"customerId": ObjectId(customer_hex), "model": reason_prefix},
             {
-                "customerId": customer_hex,
+                "customerId": ObjectId(customer_hex),
                 "model": reason_prefix,
                 "generatedAt": generated_at,
                 "items": items,

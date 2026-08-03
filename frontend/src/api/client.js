@@ -79,6 +79,15 @@ export const analyticsApi = {
   summary: () => client.get('/analytics/summary').then((r) => r.data),
   validate: () => client.get('/analytics/validate').then((r) => r.data),
   chart: (params) => client.get('/analytics/chart', { params }).then((r) => r.data),
+  revenueAnalysis: (params) => client.get('/analytics/revenue-analysis', { params }).then((r) => r.data),
+  benchmark: (params) => client.get('/analytics/benchmark', { params }).then((r) => r.data),
+  // Export endpoints return a Blob (CSV/PDF) for download.
+  revenueAnalysisCsv: (params) =>
+    client.get('/analytics/revenue-analysis/export', { params, responseType: 'blob' }).then((r) => r.data),
+  benchmarkCsv: (params) =>
+    client.get('/analytics/benchmark/export', { params, responseType: 'blob' }).then((r) => r.data),
+  reportPdf: (params) =>
+    client.get('/analytics/report', { params, responseType: 'blob' }).then((r) => r.data),
 };
 
 export const recommendationApi = {

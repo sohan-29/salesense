@@ -138,3 +138,19 @@ export const analyticsChartQuerySchema = z.object({
     .enum(['pending', 'paid', 'shipped', 'delivered', 'refunded', 'cancelled'])
     .optional(),
 });
+
+// --- Analytics benchmark / revenue analysis (M3) ------------------------
+// Same filter fields as the chart endpoint, plus a `period` for growth-window
+// bucketing (day | week | month). Used by the admin Analytics page.
+export const analyticsBenchmarkQuerySchema = z.object({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  minPrice: z.coerce.number().min(0).optional(),
+  maxPrice: z.coerce.number().min(0).optional(),
+  category: z.string().trim().optional(),
+  vendorId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid vendor id').optional(),
+  status: z
+    .enum(['pending', 'paid', 'shipped', 'delivered', 'refunded', 'cancelled'])
+    .optional(),
+  period: z.enum(['day', 'week', 'month']).optional().default('week'),
+});

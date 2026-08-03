@@ -11,6 +11,8 @@ import AdminCustomers from './pages/admin/Customers';
 import AdminProducts from './pages/admin/Products';
 import AdminTransactions from './pages/admin/Transactions';
 import AdminValidation from './pages/admin/Validation';
+import AdminAnalytics from './pages/admin/Analytics';
+import CustomerMyTransactions from './pages/customer/MyTransactions';
 
 function App() {
   return (
@@ -27,12 +29,16 @@ function App() {
             {/* Vendor only */}
             <Route path="/sales" element={<ProtectedRoute roles={['vendor']}><VendorSales /></ProtectedRoute>} />
 
+            {/* Customer only */}
+            <Route path="/my-transactions" element={<ProtectedRoute roles={['customer']}><CustomerMyTransactions /></ProtectedRoute>} />
+
             {/* Admin only */}
             <Route path="/vendors" element={<ProtectedRoute roles={['admin']}><AdminVendors /></ProtectedRoute>} />
             <Route path="/customers" element={<ProtectedRoute roles={['admin']}><AdminCustomers /></ProtectedRoute>} />
             <Route path="/products" element={<ProtectedRoute roles={['admin']}><AdminProducts /></ProtectedRoute>} />
             <Route path="/transactions" element={<ProtectedRoute roles={['admin']}><AdminTransactions /></ProtectedRoute>} />
             <Route path="/validation" element={<ProtectedRoute roles={['admin']}><AdminValidation /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute roles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

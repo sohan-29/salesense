@@ -22,6 +22,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.6.0",
     "morgan": "^1.10.0",
+    "pdfkit": "^0.19.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -32,7 +33,9 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": ["<rootDir>/tests/**/*.test.js"],
+    "testMatch": [
+      "<rootDir>/tests/**/*.test.js"
+    ],
     "globalSetup": "<rootDir>/tests/globalSetup.js",
     "globalTeardown": "<rootDir>/tests/globalTeardown.js",
     "transform": {}

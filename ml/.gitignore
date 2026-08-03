@@ -9,6 +9,11 @@ artifacts/
 *.joblib
 *.pkl
 
+# MLflow tracking store (regenerable via `python -m recommender.cli mlflow-run`)
+mlflow.db
+mlflow.db-journal
+mlruns/
+
 # Local venv
 venv/
 .venv/

@@ -25,9 +25,9 @@ function Empty({ label = 'No data for these filters' }) {
   return <p className="mt-2 text-sm text-slate-400">{label}</p>;
 }
 
-function ChartCard({ heading, subtitle, children }) {
+function ChartCard({ heading, subtitle, children, wide = false }) {
   return (
-    <div className={card}>
+    <div className={`${card} ${wide ? 'lg:col-span-2' : ''}`}>
       <h2 className={title}>{heading}</h2>
       {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
       <div className="mt-4 h-64">{children}</div>
@@ -150,9 +150,9 @@ export default function AnalyticsCharts({ data, loading, isAdmin = false }) {
         )}
       </ChartCard>
 
-      {/* Revenue by vendor (admin only) */}
+      {/* Revenue by vendor (admin only) — full width so it isn't orphaned */}
       {isAdmin && (
-        <ChartCard heading="Revenue by vendor" subtitle="Vendor contribution to filtered GMV.">
+        <ChartCard heading="Revenue by vendor" subtitle="Vendor contribution to filtered GMV." wide>
           {byVendor.length === 0 ? (
             <Empty />
           ) : (

@@ -24,6 +24,7 @@ from .data import Dataset, get_mongo_uri, load_dataset
 from .models import build_all, popular_fallback
 from .backtest import run_backtest, format_report
 from .writeback import refresh_recommendations, RefreshResult
+from .mlflow_pipeline import run_pipeline as run_mlflow_pipeline
 
 DEFAULT_ARTIFACTS_DIR = "artifacts"
 MODEL_FILE = "models.joblib"
@@ -182,6 +183,11 @@ def cmd_refresh(args) -> None:
     print("Re-run after data changes, or on a schedule, to refresh the cache.")
 
 
+def cmd_mlflow_run(args) -> None:
+    """Run the automated MLflow pipeline: log the SVD recommender + LinearRegression forecaster."""
+    run_mlflow_pipeline(n_components=args.components, k=args.limit)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="recommender.cli",
@@ -229,6 +235,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_refresh.add_argument("--limit", type=int, default=5, help="Top-k per customer (default 5).")
     p_refresh.add_argument("--components", type=int, default=20, help="SVD latent factors (default 20).")
     p_refresh.set_defaults(func=cmd_refresh)
+
+    p_mlflow = sub.add_parser(
+        "mlflow-run",
+        help="Run the MLflow pipeline: log the SVD recommender + LinearRegression forecaster.",
+    )
+    p_mlflow.add_argument("--components", type=int, default=10, help="SVD latent factors (default 10).")
+    p_mlflow.add_argument("--limit", type=int, default=5, help="Top-k for the recommender backtest (default 5).")
+    p_mlflow.set_defaults(func=cmd_mlflow_run)
 
     return parser
 

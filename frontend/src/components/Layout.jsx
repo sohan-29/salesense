@@ -16,6 +16,7 @@ const icon = {
 const navByRole = {
   customer: [
     { to: '/', label: 'Catalog', icon: icon.catalog },
+    { to: '/my-transactions', label: 'My Transactions', icon: icon.txns },
     { to: '/profile', label: 'My Profile', icon: icon.profile },
   ],
   vendor: [
@@ -25,6 +26,7 @@ const navByRole = {
   ],
   admin: [
     { to: '/', label: 'Dashboard', icon: icon.dash },
+    { to: '/analytics', label: 'Analytics', icon: icon.sales },
     { to: '/vendors', label: 'Vendors', icon: icon.vendors },
     { to: '/customers', label: 'Customers', icon: icon.customers },
     { to: '/products', label: 'Products', icon: icon.products },

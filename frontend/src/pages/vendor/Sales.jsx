@@ -12,6 +12,7 @@ export default function Sales() {
   const [txns, setTxns] = useState(null);
   const [chart, setChart] = useState(null);
   const [chartLoading, setChartLoading] = useState(true);
+  const [filters, setFilters] = useState({});
 
   useEffect(() => {
     Promise.all([analyticsApi.summary(), transactionApi.list()])
@@ -21,6 +22,7 @@ export default function Sales() {
 
   // Filterable analytics: re-fetch /chart (vendor-scoped server-side) on change.
   const onFiltersChange = useCallback((params) => {
+    setFilters(params);
     setChartLoading(true);
     analyticsApi
       .chart(params)
@@ -32,37 +34,54 @@ export default function Sales() {
   if (!summary || !txns) return <Spinner />;
 
   const cs = chart?.summary;
+  const hasFilters = Object.keys(filters).length > 0;
 
   return (
-    <div>
-      <h1 className="text-2xl font-semibold text-ink">Sales</h1>
-      <p className="text-sm text-slate-500">Your revenue and order history.</p>
-
-      {/* Always-on overview KPIs */}
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Revenue (GMV)" value={money(summary.gmv)} accent="indigo" />
-        <StatCard label="Units sold" value={summary.totalUnits} accent="emerald" />
-        <StatCard label="Orders" value={summary.orderCount} accent="sky" />
-        <StatCard label="Avg order value" value={money(summary.aov)} accent="amber" />
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-semibold text-ink">Sales</h1>
+        <p className="text-sm text-slate-500">Your revenue and order history, filterable by date, price, category & status.</p>
       </div>
 
-      {/* Filterable graphical analytics (vendor is auto-scoped to their own) */}
-      <div className="mt-8">
-        <AnalyticsFilters onChange={onFiltersChange} />
+      {/* Filter bar (vendor is auto-scoped to their own data server-side) */}
+      <AnalyticsFilters onChange={onFiltersChange} />
 
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Filtered revenue" value={money(cs?.gmv)} accent="indigo" sub={`${cs?.orderCount ?? 0} orders`} />
-          <StatCard label="Filtered units" value={cs?.totalUnits ?? 0} accent="emerald" />
-          <StatCard label="Filtered AOV" value={money(cs?.aov)} accent="amber" />
-          <StatCard label="Products in view" value={chart?.topProducts?.length ?? 0} accent="sky" />
-        </div>
-
-        <div className="mt-6">
-          <AnalyticsCharts data={chart} loading={chartLoading} />
-        </div>
+      {/* Filtered KPIs (all-time shown as sub) */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label={hasFilters ? 'Revenue (filtered)' : 'Revenue (GMV)'}
+          value={money(cs?.gmv)}
+          accent="indigo"
+          sub={`all-time ${money(summary.gmv)} · ${cs?.orderCount ?? 0} orders`}
+        />
+        <StatCard
+          label={hasFilters ? 'Units (filtered)' : 'Units sold'}
+          value={cs?.totalUnits ?? 0}
+          accent="emerald"
+          sub={`all-time ${summary.totalUnits ?? 0}`}
+        />
+        <StatCard
+          label={hasFilters ? 'Avg order (filtered)' : 'Avg order value'}
+          value={money(cs?.aov)}
+          accent="amber"
+          sub={`all-time ${money(summary.aov)}`}
+        />
+        <StatCard
+          label="Orders"
+          value={cs?.orderCount ?? 0}
+          accent="sky"
+          sub={hasFilters ? `filtered from ${summary.orderCount ?? 0}` : 'all-time'}
+        />
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      {/* Charts */}
+      <AnalyticsCharts data={chart} loading={chartLoading} />
+
+      {/* Order history */}
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 px-5 py-3">
+          <h2 className="text-sm font-semibold text-ink">Order history</h2>
+        </div>
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
             <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Product</th><th className="px-4 py-3">Qty</th><th className="px-4 py-3">Total</th><th className="px-4 py-3">Status</th></tr>

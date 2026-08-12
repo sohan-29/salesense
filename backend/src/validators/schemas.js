@@ -139,6 +139,16 @@ export const analyticsChartQuerySchema = z.object({
     .optional(),
 });
 
+// --- Cart ---------------------------------------------------------------
+export const cartItemSchema = z.object({
+  productId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid product id'),
+  quantity: z.number().int().min(1, 'Quantity must be at least 1').max(99),
+});
+
+export const cartQtySchema = z.object({
+  quantity: z.number().int().min(0, 'Quantity must be >= 0').max(99),
+});
+
 // --- Analytics benchmark / revenue analysis (M3) ------------------------
 // Same filter fields as the chart endpoint, plus a `period` for growth-window
 // bucketing (day | week | month). Used by the admin Analytics page.

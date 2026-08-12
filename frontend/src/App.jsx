@@ -13,6 +13,8 @@ import AdminTransactions from './pages/admin/Transactions';
 import AdminValidation from './pages/admin/Validation';
 import AdminAnalytics from './pages/admin/Analytics';
 import CustomerMyTransactions from './pages/customer/MyTransactions';
+import CustomerCart from './pages/customer/Cart';
+import CustomerWishlist from './pages/customer/Wishlist';
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
             <Route path="/sales" element={<ProtectedRoute roles={['vendor']}><VendorSales /></ProtectedRoute>} />
 
             {/* Customer only */}
+            <Route path="/cart" element={<ProtectedRoute roles={['customer']}><CustomerCart /></ProtectedRoute>} />
+            <Route path="/wishlist" element={<ProtectedRoute roles={['customer']}><CustomerWishlist /></ProtectedRoute>} />
             <Route path="/my-transactions" element={<ProtectedRoute roles={['customer']}><CustomerMyTransactions /></ProtectedRoute>} />
 
             {/* Admin only */}

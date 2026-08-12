@@ -95,6 +95,22 @@ export const recommendationApi = {
   popular: (params) => client.get('/recommendations/popular', { params }).then((r) => r.data),
 };
 
+export const cartApi = {
+  get: () => client.get('/cart').then((r) => r.data),
+  addItem: (productId, quantity = 1) => client.post('/cart', { productId, quantity }).then((r) => r.data),
+  setQty: (productId, quantity) => client.patch(`/cart/${productId}`, { quantity }).then((r) => r.data),
+  removeItem: (productId) => client.delete(`/cart/${productId}`).then((r) => r.data),
+  clear: () => client.delete('/cart').then((r) => r.data),
+  checkout: () => client.post('/cart/checkout').then((r) => r.data),
+};
+
+export const wishlistApi = {
+  get: () => client.get('/wishlist').then((r) => r.data),
+  add: (productId) => client.post(`/wishlist/${productId}`).then((r) => r.data),
+  remove: (productId) => client.delete(`/wishlist/${productId}`).then((r) => r.data),
+  moveToCart: (productId) => client.post(`/wishlist/${productId}/move-to-cart`).then((r) => r.data),
+};
+
 export const categoryApi = {
   list: () => client.get('/categories').then((r) => r.data),
 };

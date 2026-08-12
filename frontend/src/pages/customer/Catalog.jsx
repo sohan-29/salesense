@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { productApi, transactionApi, recommendationApi } from '../../api/client';
+import { productApi, recommendationApi, cartApi, wishlistApi } from '../../api/client';
 import Spinner from '../../components/Spinner';
 
 const money = (n) => `₹${Number(n || 0).toFixed(2)}`;
@@ -10,6 +10,7 @@ export default function Catalog() {
   const [q, setQ] = useState('');
   const [busyId, setBusyId] = useState(null);
   const [toast, setToast] = useState(null);
+  const [wishIds, setWishIds] = useState(new Set());
 
   const loadProducts = () => productApi.list().then(({ products }) => setProducts(products));
 
@@ -28,21 +29,59 @@ export default function Catalog() {
     }
   };
 
+  // Load the wishlist once so the heart toggle reflects saved state.
+  const loadWishIds = async () => {
+    try {
+      const { wishlist } = await wishlistApi.get();
+      setWishIds(new Set((wishlist.items || []).map((i) => (i.productId?._id || i.productId).toString())));
+    } catch {
+      setWishIds(new Set());
+    }
+  };
+
   useEffect(() => {
     loadProducts().catch(() => setProducts([]));
     loadRecs();
+    loadWishIds();
   }, []);
 
-  const buy = async (p) => {
+  const addToCart = async (p) => {
     setBusyId(p._id);
     setToast(null);
     try {
-      await transactionApi.create({ productId: p._id, quantity: 1 });
-      setToast({ kind: 'ok', msg: `Added “${p.name}” to your orders.` });
-      loadRecs(); // recommendations react to the new purchase
+      await cartApi.addItem(p._id, 1);
+      setToast({ kind: 'ok', msg: `Added “${p.name}” to your cart.` });
     } catch (err) {
-      const msg = err.response?.data?.error?.message || 'Could not place order.';
+      const msg = err.response?.data?.error?.message || 'Could not add to cart.';
       setToast({ kind: 'err', msg });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const toggleWish = async (p) => {
+    setBusyId(p._id);
+    setToast(null);
+    const saved = wishIds.has(p._id);
+    // Optimistic toggle for snappy UI.
+    setWishIds((prev) => {
+      const next = new Set(prev);
+      if (saved) next.delete(p._id);
+      else next.add(p._id);
+      return next;
+    });
+    try {
+      if (saved) await wishlistApi.remove(p._id);
+      else await wishlistApi.add(p._id);
+    } catch (err) {
+      // Revert on failure.
+      setWishIds((prev) => {
+        const next = new Set(prev);
+        if (saved) next.add(p._id);
+        else next.delete(p._id);
+        return next;
+      });
+      setToast({ kind: 'err', msg: err.response?.data?.error?.message || 'Could not update wishlist.' });
     } finally {
       setBusyId(null);
     }
@@ -126,13 +165,30 @@ export default function Catalog() {
                   <span className="text-lg font-bold text-brand-700">{money(p.price)}</span>
                   {p.sku && <span className="text-xs text-slate-400">SKU {p.sku}</span>}
                 </div>
-                <button
-                  onClick={() => buy(p)}
-                  disabled={busyId === p._id}
-                  className="mt-3 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
-                >
-                  {busyId === p._id ? 'Placing order…' : 'Buy now'}
-                </button>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => addToCart(p)}
+                    disabled={busyId === p._id}
+                    className="flex-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+                  >
+                    {busyId === p._id ? 'Adding…' : 'Add to cart'}
+                  </button>
+                  <button
+                    onClick={() => toggleWish(p)}
+                    disabled={busyId === p._id}
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border disabled:opacity-60 ${
+                      wishIds.has(p._id)
+                        ? 'border-rose-300 bg-rose-50 text-rose-600'
+                        : 'border-slate-300 text-slate-400 hover:text-rose-500'
+                    }`}
+                    aria-label={wishIds.has(p._id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                    title={wishIds.has(p._id) ? 'In your wishlist' : 'Save to wishlist'}
+                  >
+                    <svg className="h-5 w-5" fill={wishIds.has(p._id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.6}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           ))}

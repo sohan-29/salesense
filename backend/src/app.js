@@ -14,6 +14,8 @@ import transactionRoutes from './routes/transactionRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import recommendationRoutes from './routes/recommendationRoutes.js';
+import cartRoutes from './routes/cartRoutes.js';
+import wishlistRoutes from './routes/wishlistRoutes.js';
 import notFound from './middleware/notFound.js';
 import errorHandler from './middleware/errorHandler.js';
 
@@ -62,6 +64,8 @@ export function createApp() {
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/categories', categoryRoutes);
   app.use('/api/recommendations', recommendationRoutes);
+  app.use('/api/cart', cartRoutes);
+  app.use('/api/wishlist', wishlistRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

@@ -12,6 +12,7 @@ import AdminProducts from './pages/admin/Products';
 import AdminTransactions from './pages/admin/Transactions';
 import AdminValidation from './pages/admin/Validation';
 import AdminAnalytics from './pages/admin/Analytics';
+import AdminExecutive from './pages/admin/Executive';
 import CustomerMyTransactions from './pages/customer/MyTransactions';
 import CustomerCart from './pages/customer/Cart';
 import CustomerWishlist from './pages/customer/Wishlist';
@@ -43,6 +44,7 @@ function App() {
             <Route path="/transactions" element={<ProtectedRoute roles={['admin']}><AdminTransactions /></ProtectedRoute>} />
             <Route path="/validation" element={<ProtectedRoute roles={['admin']}><AdminValidation /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute roles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
+            <Route path="/executive" element={<ProtectedRoute roles={['admin']}><AdminExecutive /></ProtectedRoute>} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -9,7 +9,8 @@
     "start": "node src/server.js",
     "seed": "node src/scripts/seed.js",
     "ml:refresh": "node src/scripts/runMLRefresh.js",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --forceExit --detectOpenHandles"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --forceExit --detectOpenHandles",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --forceExit --coverage --collectCoverageFrom='src/**/*.js'"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

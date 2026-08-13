@@ -4,7 +4,9 @@ import Product from '../models/Product.js';
 import Vendor from '../models/Vendor.js';
 import Customer from '../models/Customer.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import ApiError from '../utils/ApiError.js';
 import { runValidation } from '../utils/validation.js';
+import { computeRevenueAnalysis, computeBenchmark } from './benchmarkController.js';
 
 /**
  * GET /api/analytics/revenue — revenue grouped by vendor (Step 4 baseline report).
@@ -132,6 +134,113 @@ export const summary = asyncHandler(async (req, res) => {
       productCount,
       customerCount,
     },
+  });
+});
+
+/**
+ * GET /api/analytics/executive — consolidated executive-BI summary.
+ *
+ * A single call that aggregates everything the new `/executive` dashboard needs:
+ * top-level KPIs, revenue trend + growth, top vendors by GMV, top products by
+ * revenue, fulfilment rate, and marketplace benchmark averages. One request
+ * instead of five, so the page renders as a single coherent executive view.
+ * Reuses the M3 compute helpers so the numbers always agree with the
+ * /revenue-analysis and /benchmark endpoints. Admin-only.
+ */
+export const executive = asyncHandler(async (req, res) => {
+  if (req.vendor.role !== 'admin') throw ApiError.forbidden('Executive analytics is admin-only');
+
+  const [summaryRow, analysis, benchmark] = await Promise.all([
+    (async () => {
+      const [agg] = await Transaction.aggregate([
+        { $match: { status: { $ne: 'cancelled' } } },
+        {
+          $group: {
+            _id: null,
+            gmv: { $sum: '$totalAmount' },
+            totalUnits: { $sum: '$quantity' },
+            orderCount: { $sum: 1 },
+            delivered: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
+          },
+        },
+      ]);
+      const gmv = agg?.gmv || 0;
+      const orderCount = agg?.orderCount || 0;
+      const deliveredOrders = agg?.delivered || 0;
+      const aov = orderCount ? gmv / orderCount : 0;
+      return {
+        gmv: Number(gmv.toFixed(2)),
+        totalUnits: agg?.totalUnits || 0,
+        orderCount,
+        aov: Number(aov.toFixed(2)),
+        deliveredOrders,
+        fulfilmentRate: orderCount ? Number((deliveredOrders / orderCount).toFixed(3)) : 0,
+      };
+    })(),
+    computeRevenueAnalysis(req),
+    computeBenchmark(req),
+  ]);
+
+  const [vendorCount, activeVendors, productCount, customerCount] = await Promise.all([
+    Vendor.countDocuments({}),
+    Vendor.countDocuments({ status: 'Active' }),
+    Product.countDocuments({}),
+    Customer.countDocuments({}),
+  ]);
+
+  // Top 5 vendors by GMV from the revenue-analysis breakdown (already sorted).
+  const topVendors = analysis.byVendor.slice(0, 5).map((v) => ({
+    vendorId: v.vendorId,
+    businessName: v.businessName,
+    gmv: v.gmv,
+    netRevenue: v.netRevenue,
+    commission: v.commission,
+    marginPct: v.marginPct,
+    orders: v.orders,
+  }));
+
+  // Top 5 products by revenue — reuse the product-performance aggregation.
+  const productsAgg = await Transaction.aggregate([
+    { $match: { status: { $ne: 'cancelled' }, ...(req.query.vendorId ? { vendorId: new mongoose.Types.ObjectId(req.query.vendorId) } : {}) } },
+    {
+      $group: {
+        _id: '$productId',
+        revenue: { $sum: '$totalAmount' },
+        unitsSold: { $sum: '$quantity' },
+      },
+    },
+    { $sort: { revenue: -1 } },
+    { $limit: 5 },
+    { $lookup: { from: 'products', localField: '_id', foreignField: '_id', as: 'product' } },
+    { $unwind: { path: '$product', preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        _id: 0,
+        productId: '$_id',
+        name: '$product.name',
+        category: '$product.category',
+        revenue: 1,
+        unitsSold: 1,
+      },
+    },
+  ]);
+
+  res.json({
+    summary: summaryRow,
+    growth: analysis.growth,
+    totals: analysis.totals,
+    trend: analysis.timeseries,
+    topVendors,
+    topProducts: productsAgg,
+    marketplace: {
+      vendorCount,
+      activeVendors,
+      productCount,
+      customerCount,
+    },
+    benchmark: benchmark.benchmark,
+    generatedAt: new Date().toISOString(),
+    filters: req.query,
   });
 });
 

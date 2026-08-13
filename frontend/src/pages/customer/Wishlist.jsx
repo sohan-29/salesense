@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { wishlistApi, cartApi } from '../../api/client';
+import { wishlistApi } from '../../api/client';
 import Spinner from '../../components/Spinner';
 
 const money = (n) => `₹${Number(n || 0).toFixed(2)}`;

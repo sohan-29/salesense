@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { productApi, inventoryApi, categoryApi } from '../../api/client';
+import { productApi, categoryApi } from '../../api/client';
 import Spinner from '../../components/Spinner';
 import StatusBadge from '../../components/StatusBadge';
 

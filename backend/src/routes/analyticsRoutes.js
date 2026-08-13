@@ -1,5 +1,5 @@
 import express from 'express';
-import { revenueByVendor, productPerformance, summary, validate, chartAnalytics } from '../controllers/analyticsController.js';
+import { revenueByVendor, productPerformance, summary, validate, chartAnalytics, executive } from '../controllers/analyticsController.js';
 import { revenueAnalysis, benchmark, revenueAnalysisCsv, benchmarkCsv, analyticsReport } from '../controllers/benchmarkController.js';
 import authenticate from '../middleware/auth.js';
 import requireRole from '../middleware/role.js';
@@ -21,5 +21,6 @@ router.get('/benchmark', validateRequest.query(analyticsBenchmarkQuerySchema), b
 router.get('/benchmark/export', validateRequest.query(analyticsBenchmarkQuerySchema), benchmarkCsv);
 router.get('/report', validateRequest.query(analyticsBenchmarkQuerySchema), analyticsReport);
 router.get('/validate', validate);
+router.get('/executive', validateRequest.query(analyticsBenchmarkQuerySchema), executive);
 
 export default router;

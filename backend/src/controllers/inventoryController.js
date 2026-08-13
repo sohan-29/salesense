@@ -37,11 +37,13 @@ export const lowStock = asyncHandler(async (req, res) => {
   const { threshold } = req.query;
   const filter = req.vendor.role === 'admin' ? {} : { vendorId: req.vendor._id };
 
-  // Match products whose available stock is at/below their reorder threshold,
-  // or the override threshold if provided.
-  const matchThreshold = threshold !== undefined
-    ? { $lte: threshold }
-    : { $lte: '$reorderThreshold' };
+  // Match products whose available stock is at/below their reorder threshold
+  // (field-vs-field comparison needs $expr — passing the literal string
+  // '$reorderThreshold' in a plain $match would compare against that string,
+  // silently matching nothing), or the numeric override threshold if provided.
+  const availableMatch = threshold !== undefined
+    ? { available: { $lte: Number(threshold) } }
+    : { $expr: { $lte: ['$available', '$reorderThreshold'] } };
 
   const items = await Inventory.aggregate([
     { $match: filter },
@@ -50,7 +52,7 @@ export const lowStock = asyncHandler(async (req, res) => {
         available: { $max: [0, { $subtract: ['$stockAvailable', '$reserved'] }] },
       },
     },
-    { $match: { available: matchThreshold } },
+    { $match: availableMatch },
     { $sort: { available: 1 } },
     {
       $lookup: {

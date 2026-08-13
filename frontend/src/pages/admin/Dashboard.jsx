@@ -5,7 +5,6 @@ import StatCard from '../../components/StatCard';
 import AnalyticsFilters from '../../components/AnalyticsFilters';
 import AnalyticsCharts from '../../components/AnalyticsCharts';
 
-const money = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0);
 const compactMoney = (n) => `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
 
 export default function Dashboard() {

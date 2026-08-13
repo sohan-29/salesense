@@ -30,3 +30,21 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ML artifacts (large/regenerable)
+ml/artifacts/
+ml/mlruns/
+ml/mlflow.db
+
+# Test / coverage output
+backend/coverage/
+backend/tests/perf/results*.csv
+backend/tests/perf/results*.stats
+backend/tests/perf/results*.failures.csv

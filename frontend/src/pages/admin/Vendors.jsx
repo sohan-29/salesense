@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { vendorApi } from '../../api/client';
 import Spinner from '../../components/Spinner';
 import StatusBadge from '../../components/StatusBadge';
@@ -7,8 +7,8 @@ export default function Vendors() {
   const [vendors, setVendors] = useState(null);
   const [filter, setFilter] = useState('');
 
-  const load = () => vendorApi.list(filter ? { status: filter } : {}).then(({ vendors }) => setVendors(vendors));
-  useEffect(() => { load(); }, [filter]);
+  const load = useCallback(() => vendorApi.list(filter ? { status: filter } : {}).then(({ vendors }) => setVendors(vendors)), [filter]);
+  useEffect(() => { load(); }, [load]);
 
   const setStatus = async (id, status) => {
     await vendorApi.updateStatus(id, { status });

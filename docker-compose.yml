@@ -1,0 +1,41 @@
+# ── ShopSense — full stack compose ────────────────────────────────────
+# Brings up the backend API and the nginx-served frontend together. MongoDB
+# is NOT included: in production ShopSense connects to MongoDB Atlas. Set
+# MONGO_URI in backend/.env (see backend/.env.example) before running.
+#
+#   docker compose up --build
+#   → frontend on http://localhost:8080
+#   → backend  on http://localhost:5000
+# ───────────────────────────────────────────────────────────────────────
+
+services:
+  backend:
+    build: ./backend
+    container_name: shopsense-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - CLIENT_URL=http://localhost:8080
+    ports:
+      - "5000:5000"
+    # backend reaches Atlas over the public network; no depends_on for Mongo.
+    networks:
+      - shopsense-net
+
+  frontend:
+    build: ./frontend
+    container_name: shopsense-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - shopsense-net
+
+networks:
+  shopsense-net:
+    driver: bridge

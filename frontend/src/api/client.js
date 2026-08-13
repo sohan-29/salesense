@@ -81,6 +81,7 @@ export const analyticsApi = {
   chart: (params) => client.get('/analytics/chart', { params }).then((r) => r.data),
   revenueAnalysis: (params) => client.get('/analytics/revenue-analysis', { params }).then((r) => r.data),
   benchmark: (params) => client.get('/analytics/benchmark', { params }).then((r) => r.data),
+  executive: (params) => client.get('/analytics/executive', { params }).then((r) => r.data),
   // Export endpoints return a Blob (CSV/PDF) for download.
   revenueAnalysisCsv: (params) =>
     client.get('/analytics/revenue-analysis/export', { params, responseType: 'blob' }).then((r) => r.data),

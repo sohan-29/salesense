@@ -114,4 +114,5 @@ shopsense/
 
 ## License
 
-Academic / coursework project. Not for production use without hardening.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+

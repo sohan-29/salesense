@@ -23,7 +23,7 @@ export default function Validation() {
 
   const rows = [
     { label: 'Forecast accuracy', value: data.forecastAccuracy, threshold: data.thresholds.forecastAccuracy, hint: '1 − MAPE of predicted vs actual test-window units' },
-    { label: 'Segmentation quality', value: data.segmentationQuality, threshold: data.thresholds.segmentationQuality, hint: 'Cohesion-vs-separation proxy over RFM features' },
+    { label: 'Segmentation quality', value: data.segmentationQuality, threshold: data.thresholds.segmentationQuality, hint: 'Cohesion-vs-separation proxy over segmentation features (K-Means model, RFM-rule fallback)' },
     { label: 'Recommendation relevance', value: data.recommendationRelevance, threshold: data.thresholds.recommendationRelevance, hint: 'Held-out last-purchase hit rate' },
   ];
 

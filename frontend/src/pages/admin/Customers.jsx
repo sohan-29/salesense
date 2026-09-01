@@ -5,7 +5,14 @@ import StatCard from '../../components/StatCard';
 
 const money = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n || 0);
 
+// K-Means labels (primary, from the Python segmenter) + RFM rule labels
+// (fallback when the ML cache is missing/stale). Stat cards render from
+// whichever keys the response actually contains.
 const SEGMENTS = [
+  { key: 'premium', label: 'Premium', accent: 'emerald' },
+  { key: 'regular', label: 'Regular', accent: 'sky' },
+  { key: 'new', label: 'New', accent: 'sky' },
+  { key: 'inactive', label: 'Inactive', accent: 'indigo' },
   { key: 'frequentBuyers', label: 'Frequent buyers', accent: 'emerald' },
   { key: 'occasional', label: 'Occasional', accent: 'sky' },
   { key: 'atRisk', label: 'At risk', accent: 'amber' },
@@ -45,15 +52,29 @@ export default function Customers() {
   if (!customers) return <Spinner />;
 
   const counts = segments?.summary?.counts || {};
+  const activeSegmentKeys = SEGMENTS.filter((s) => counts[s.key] !== undefined);
+  const isML = segments?.source === 'kmeans';
 
   return (
     <div>
       <h1 className="text-2xl font-semibold text-ink">Customers</h1>
       <p className="text-sm text-slate-500">Segmentation and purchase behaviour across the marketplace.</p>
 
-      {segments && (
+      {isML && segments.model && (
+        <p className="mt-2 text-xs text-slate-400">
+          K-Means clustering (k={segments.model.k}, silhouette={segments.model.silhouette}) over spend, orders, average
+          order value and recency. Refresh via <code>npm run ml:refresh</code>.
+        </p>
+      )}
+      {!isML && segments && (
+        <p className="mt-2 text-xs text-slate-400">
+          Rule-based segments (RFM fallback — run <code>npm run ml:refresh</code> to train the K-Means model).
+        </p>
+      )}
+
+      {segments && activeSegmentKeys.length > 0 && (
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {SEGMENTS.map((s) => (
+          {activeSegmentKeys.map((s) => (
             <StatCard key={s.key} label={s.label} value={counts[s.key] || 0} accent={s.accent} />
           ))}
         </div>
@@ -144,13 +165,27 @@ function Mini({ label, value }) {
 
 function SegmentBadge({ segment }) {
   const map = {
+    premium: 'bg-emerald-50 text-emerald-700',
+    regular: 'bg-sky-50 text-sky-700',
+    new: 'bg-slate-100 text-slate-600',
+    inactive: 'bg-indigo-50 text-indigo-700',
     frequentBuyers: 'bg-emerald-50 text-emerald-700',
     occasional: 'bg-sky-50 text-sky-700',
     atRisk: 'bg-amber-50 text-amber-700',
     dormantUsers: 'bg-indigo-50 text-indigo-700',
     newUsers: 'bg-slate-100 text-slate-600',
   };
-  const label = { frequentBuyers: 'Frequent', occasional: 'Occasional', atRisk: 'At risk', dormantUsers: 'Dormant', newUsers: 'New' };
+  const label = {
+    premium: 'Premium',
+    regular: 'Regular',
+    new: 'New',
+    inactive: 'Inactive',
+    frequentBuyers: 'Frequent',
+    occasional: 'Occasional',
+    atRisk: 'At risk',
+    dormantUsers: 'Dormant',
+    newUsers: 'New',
+  };
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs ${map[segment] || 'bg-slate-100 text-slate-600'}`}>
       {label[segment] || segment}

@@ -33,6 +33,7 @@ import mlflow.sklearn
 from .data import Dataset, get_mongo_uri, load_dataset
 from .models import SVDRecommender
 from .backtest import run_backtest
+from .segmentation import fit_kmeans, label_clusters, build_customer_features
 
 # Default tracking store: a persistent sqlite DB inside the ml/ dir so the
 # registry survives restarts and `mlflow ui` can read it.
@@ -42,6 +43,7 @@ DEFAULT_TRACKING_URI = "sqlite:///" + os.path.join(
 EXPERIMENT_NAME = "shopsense-analytics"
 REC_MODEL_NAME = "shopsense-recommender"
 FORECAST_MODEL_NAME = "shopsense-forecaster"
+SEGMENTER_MODEL_NAME = "shopsense-segmenter"
 
 DAY_MS = 24 * 60 * 60 * 1000
 
@@ -188,29 +190,95 @@ def log_forecaster(dataset: Dataset):
     return {"run_id": run_id, "accuracy": round(accuracy, 3), "r2": round(float(r2), 3)}
 
 
+def log_segmenter(uri: Optional[str] = None, db_name: str = "shopsense"):
+    """Train the K-Means customer segmenter and log it to MLflow.
+
+    Unlike the recommender/forecaster (which train from the Dataset object),
+    segmentation reads customer + transaction aggregates directly from Mongo
+    via build_customer_features — every customer is clustered, including
+    never-purchasers. Params (k, features), metrics (silhouette, cluster
+    sizes) and the sklearn pipeline (scaler + KMeans) are logged, then
+    registered as `shopsense-segmenter`.
+    """
+    from pymongo import MongoClient
+    from sklearn.pipeline import Pipeline
+
+    client = MongoClient(uri or get_mongo_uri(), serverSelectionTimeoutMS=10000)
+    try:
+        db = client[db_name]
+        features = build_customer_features(db)
+        if len(features) < 4:
+            return {"run_id": None, "skipped": f"only {len(features)} customers"}
+
+        scaler, km, chosen_k, sil, _ = fit_kmeans(features)
+        cluster_labels = label_clusters(scaler, km)
+        sizes = {cluster_labels[c]: int(n) for c, n in enumerate(np.bincount(km.labels_))}
+    finally:
+        client.close()
+
+    # A sklearn Pipeline bundles scaler + kmeans into one loggable artifact.
+    pipe = Pipeline([("scaler", scaler), ("kmeans", km)])
+    pipe.fit(_feature_rows(features))
+
+    with mlflow.start_run(run_name="kmeans-segmenter") as run:
+        mlflow.log_param("model_type", "KMeans")
+        mlflow.log_param("k", chosen_k)
+        mlflow.log_param("features", "totalSpend,orderCount,avgOrderValue,recencyDays")
+        mlflow.log_param("n_customers", len(features))
+        mlflow.log_param("k_selection", "silhouette sweep 2..min(8, n-1)")
+        mlflow.log_metric("silhouette", round(float(sil), 4))
+        for label, count in sizes.items():
+            mlflow.log_metric(f"cluster_size_{label}", count)
+        mlflow.sklearn.log_model(pipe, artifact_path="segmenter_model")
+        mlflow.set_tag("stage", "segmentation")
+        run_id = run.info.run_id
+
+    mlflow.register_model(f"runs:/{run_id}/segmenter_model", SEGMENTER_MODEL_NAME)
+    return {
+        "run_id": run_id,
+        "k": chosen_k,
+        "silhouette": round(float(sil), 4),
+        "cluster_sizes": sizes,
+    }
+
+
+def _feature_rows(features):
+    """Feature matrix (matching segmentation._feature_matrix) for the Pipeline refit."""
+    from .segmentation import _feature_matrix
+
+    return _feature_matrix(features)
+
+
 def run_pipeline(
     n_components: int = 10,
     k: int = 5,
     tracking_uri: Optional[str] = None,
 ) -> dict:
-    """The automated analytical workflow: load data, train + log both models."""
+    """The automated analytical workflow: load data, train + log all three models."""
     uri = _set_tracking(tracking_uri)
     print(f"MLflow tracking URI: {uri}")
     print("Loading data from Atlas...")
     dataset = load_dataset(get_mongo_uri())
     print(f"  {len(dataset.interactions)} interactions, {dataset.n_customers} customers, {dataset.n_products} products")
 
-    print("\n[1/2] Logging SVD recommender...")
+    print("\n[1/3] Logging SVD recommender...")
     rec = log_recommender(dataset, n_components=n_components, k=k)
     print(f"  run_id={rec['run_id']}  relevance={rec['relevance']}")
 
-    print("\n[2/2] Logging LinearRegression forecaster...")
+    print("\n[2/3] Logging LinearRegression forecaster...")
     fc = log_forecaster(dataset)
     if fc.get("run_id"):
         print(f"  run_id={fc['run_id']}  accuracy={fc['accuracy']}  r2={fc['r2']}")
     else:
         print(f"  skipped: {fc.get('skipped')}")
 
+    print("\n[3/3] Logging KMeans segmenter...")
+    seg = log_segmenter()
+    if seg.get("run_id"):
+        print(f"  run_id={seg['run_id']}  k={seg['k']}  silhouette={seg['silhouette']}")
+    else:
+        print(f"  skipped: {seg.get('skipped')}")
+
     print("\nDone. View the registry with:")
     print(f"  mlflow ui --backend-store-uri {uri}")
-    return {"tracking_uri": uri, "recommender": rec, "forecaster": fc}
+    return {"tracking_uri": uri, "recommender": rec, "forecaster": fc, "segmenter": seg}

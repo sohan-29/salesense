@@ -78,22 +78,56 @@ This is intentionally a simple, explainable baseline; the heavy lifting for
 ## 3. Customer segmentation
 
 **Endpoint:** `GET /api/customers/segments`
-**Code:** [segmentation.js](backend/src/utils/segmentation.js)
+**Code:** [segmentation.py](ml/recommender/segmentation.py) (K-Means model),
+[segmentation.js](backend/src/utils/segmentation.js) (rules fallback),
+[customerController.js](backend/src/controllers/customerController.js) (serving)
 
-**RFM-style rule-based segmentation** into five segments, derived from each
-customer's `recencyDays`, `ordersLast30d`, and `joinedDaysAgo`:
+### K-Means clustering (primary)
 
-| Segment          | Rule                                    |
-|------------------|-----------------------------------------|
-| `frequentBuyers` | recent + high 30d frequency             |
-| `dormantUsers`   | `recencyDays ≥ 60`                      |
-| `atRisk`         | `30 ≤ recencyDays < 60`                 |
-| `newUsers`       | `joinedDaysAgo < 14` (or never purchased)|
-| `occasional`     | everyone else (active, low frequency)   |
+A real scikit-learn model, trained in the Python `ml/` package and served
+freshness-gated from a materialised cache (the same pattern as the ML
+recommender):
 
-Rule-based (rather than k-means) because the segment definitions are
-business-actionable and stable — a vendor can target "at-risk" customers
-without interpreting a cluster number.
+1. **Features** — per customer, over non-cancelled attributed transactions:
+   `totalSpend`, `orderCount`, `avgOrderValue`, `recencyDays` (never-purchased
+   customers get a sentinel recency of 365 so they cluster into the
+   low-engagement region).
+2. **Scaling + clustering** — `StandardScaler` + `KMeans`. `k` is swept
+   `2..min(8, n−1)` and chosen by the best **silhouette score**, so the
+   cluster count is data-driven and adapts as the dataset grows.
+3. **Auto-labelling** — clusters are mapped to business labels from their
+   centroids (deterministic): ranked by a value score
+   (`spend + 50·orders + 10·aov − 5·recency`), the top cluster is `premium`,
+   the next `regular`; among the rest, the highest mean recency is
+   `inactive`; the remainder is `new`.
+4. **Write-back** — one row per customer is upserted into the `ml_segments`
+   collection with `generatedAt` as the freshness anchor.
+
+Run: `python -m recommender.cli segment-refresh` (or `npm run ml:refresh`
+from the backend, which also refreshes recommendations).
+
+### Serving + fallback
+
+`GET /api/customers/segments` reads the cache freshness-gated
+(`ML_SEGMENT_MAX_AGE_MIN`, default 1440): a row is served only if it is
+younger than the window **and** the customer has not purchased since it was
+generated. When the cache is missing or stale, the endpoint falls back to
+deterministic RFM rules computed live, so it always answers:
+
+| Segment          | Rule (fallback)                          |
+|------------------|------------------------------------------|
+| `frequentBuyers` | ≥3 orders in the last 30 days            |
+| `dormantUsers`   | `recencyDays ≥ 60`                       |
+| `atRisk`         | `30 ≤ recencyDays < 60`                  |
+| `newUsers`       | `joinedDaysAgo ≤ 30` (or never purchased)|
+| `occasional`     | everyone else (active, low frequency)    |
+
+The response marks which path served it (`source: 'kmeans'` or
+`'rules-fallback'`) and, on the K-Means path, includes model metadata
+(`k`, `silhouette`) plus each customer's cluster id and feature vector.
+The K-Means model is also logged to MLflow as `shopsense-segmenter`
+(scaler + KMeans pipeline, silhouette + cluster-size metrics) by
+`python -m recommender.cli mlflow-run`.
 
 ---
 

@@ -96,6 +96,31 @@ generated. Otherwise the controller recomputes live (JS CF), so recommendations
 still react to new purchases. Re-run `refresh` after data changes (or on a
 schedule) to keep the cache current.
 
+### Segment-refresh — drive the LIVE app's customer segmentation (K-Means)
+
+```bash
+python -m recommender.cli segment-refresh
+# or from the backend dir:  npm run ml:refresh   (refreshes recs AND segments)
+```
+
+Trains a real scikit-learn segmentation model — `StandardScaler` + `KMeans`
+over per-customer RFM features (`totalSpend`, `orderCount`, `avgOrderValue`,
+`recencyDays`) — with `k` auto-selected from 2..min(8, n−1) by the best
+silhouette score. Clusters are auto-labelled **premium / regular / new /
+inactive** from their centroids (deterministic value-score ranking), and one
+row per customer is upserted into the `ml_segments` collection in Atlas.
+
+`GET /api/customers/segments` (Node) serves these freshness-gated
+(`ML_SEGMENT_MAX_AGE_MIN`, default 1440 min — segments drift slower than
+recommendations), falling back to the JS RFM rules in
+`backend/src/utils/segmentation.js` when the cache is missing or stale. The
+response's `source` field (`'kmeans'` | `'rules-fallback'`) says which path
+served it; the admin Customers page shows the model's k and silhouette when
+the ML path is live.
+
+The K-Means model is also logged to MLflow as `shopsense-segmenter` by
+`python -m recommender.cli mlflow-run`.
+
 ## How the app consumes the cache
 
 ```

@@ -55,7 +55,7 @@ Current account profile from the token.
 ## Customers
 
 ### GET /customers  🔒 admin  — list/search customers
-### GET /customers/segments  🔒 admin  — RFM segmentation
+### GET /customers/segments  🔒 admin  — customer segmentation (K-Means cache with RFM-rules fallback; response includes `source`, and on the K-Means path model metadata `k`/`silhouette` + per-customer `cluster` and `features`)
 ### GET /customers/:id/behaviour  🔒 admin  — purchase behaviour profile
 
 ---

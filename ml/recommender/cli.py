@@ -24,6 +24,7 @@ from .data import Dataset, get_mongo_uri, load_dataset
 from .models import build_all, popular_fallback
 from .backtest import run_backtest, format_report
 from .writeback import refresh_recommendations, RefreshResult
+from .segmentation import refresh_segments
 from .mlflow_pipeline import run_pipeline as run_mlflow_pipeline
 
 DEFAULT_ARTIFACTS_DIR = "artifacts"
@@ -188,6 +189,21 @@ def cmd_mlflow_run(args) -> None:
     run_mlflow_pipeline(n_components=args.components, k=args.limit)
 
 
+def cmd_segment_refresh(args) -> None:
+    """Train K-Means segmentation and write per-customer labels to MongoDB."""
+    result = refresh_segments(k=args.k)
+    if result.skipped:
+        print(f"Skipped clustering: {result.skipped}.")
+        print("The Node app keeps serving its RFM rules fallback.")
+        return
+    print(
+        f"Trained KMeans (k={result.k}, silhouette={result.silhouette:.4f}) and wrote "
+        f"{result.customers_written} segment rows to the `ml_segments` collection."
+    )
+    print("Cluster labels:", ", ".join(f"{c}={lab}" for c, lab in sorted(result.labels.items())))
+    print("The Node app serves these (freshness-gated) via GET /api/customers/segments.")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="recommender.cli",
@@ -243,6 +259,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_mlflow.add_argument("--components", type=int, default=10, help="SVD latent factors (default 10).")
     p_mlflow.add_argument("--limit", type=int, default=5, help="Top-k for the recommender backtest (default 5).")
     p_mlflow.set_defaults(func=cmd_mlflow_run)
+
+    p_seg = sub.add_parser(
+        "segment-refresh",
+        help="Train K-Means customer segmentation and write labels to MongoDB (batch write-back).",
+    )
+    p_seg.add_argument(
+        "--k",
+        type=int,
+        default=None,
+        help="Force a specific cluster count (default: auto-select 2..8 by best silhouette).",
+    )
+    p_seg.set_defaults(func=cmd_segment_refresh)
 
     return parser
 
